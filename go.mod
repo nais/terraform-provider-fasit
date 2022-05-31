@@ -1,6 +1,6 @@
 module github.com/nais/terraform-provider-fasit
 
-go 1.17
+go 1.18
 
 require (
 	github.com/hashicorp/terraform-plugin-docs v0.8.1
@@ -67,4 +67,5 @@ require (
 	golang.org/x/text v0.3.5 // indirect
 	google.golang.org/appengine v1.6.6 // indirect
 	google.golang.org/genproto v0.0.0-20200711021454-869866162049 // indirect
+	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
