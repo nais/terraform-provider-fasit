@@ -32,18 +32,37 @@ checksum:
       name_template: "{{ .ProjectName }}_{{ .Version }}_manifest.json"
   name_template: "{{ .ProjectName }}_{{ .Version }}_SHA256SUMS"
   algorithm: sha256
-# signs:
-#   - artifacts: checksum
-#     args:
-#       # if you are using this in a GitHub action or some other automated pipeline, you
-#       # need to pass the batch flag to indicate its not interactive.
-#       # - "--batch"
-#       - "--local-user"
-#       - "{{ .Env.GPG_FINGERPRINT }}" # set this environment variable for your signing key
-#       - "--output"
-#       - "${signature}"
-#       - "--detach-sign"
-#       - "${artifact}"
+signs:
+  - artifacts: checksum
+    args:
+      # if you are using this in a GitHub action or some other automated pipeline, you
+      # need to pass the batch flag to indicate its not interactive.
+      # - "--batch"
+      - "--local-user"
+      - "{{ .Env.GPG_FINGERPRINT }}" # set this environment variable for your signing key
+      - "--output"
+      - "${signature}"
+      - "--detach-sign"
+      - "${artifact}"
+blobs:
+  - provider: gs
+    bucket: "nais-terraform-providers"
+    folder: "binaries/nais/{{ .ProjectName }}/{{ .Tag }}"
+publishers:
+  - name: generate-tf-api-documents
+    cmd: >-
+      tf-provider-registry-api-generator
+      --use-default-credentials
+      --bucket-name 'nais-terraform-providers'
+      --prefix 'binaries/nais/{{ .ProjectName }}/{{ .Tag }}'
+      --namespace 'nais'
+      --fingerprint '{{ .Env.GPG_FINGERPRINT }}'
+      --url 'https://tfregistry.cloud.nais.io'
+      --protocols '5.0'
+    env:
+      - "PATH={{ .Env.PATH }}"
+      # - "GOOGLE_APPLICATION_CREDENTIALS={{ .Env.GOOGLE_APPLICATION_CREDENTIALS }}"
+
 release:
   disable: true
   extra_files:
