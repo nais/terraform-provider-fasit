@@ -61,7 +61,7 @@ publishers:
       --protocols '5.0'
     env:
       - "PATH={{ .Env.PATH }}"
-      # - "GOOGLE_APPLICATION_CREDENTIALS={{ .Env.GOOGLE_APPLICATION_CREDENTIALS }}"
+      - "GOOGLE_APPLICATION_CREDENTIALS={{ .Env.GOOGLE_APPLICATION_CREDENTIALS }}"
 
 release:
   disable: true
