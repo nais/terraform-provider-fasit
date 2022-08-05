@@ -46,6 +46,7 @@ func (f fasitEnvironmentValueResourceType) GetSchema(context.Context) (tfsdk.Sch
 				MarkdownDescription: "Is hidden from Fasit UI",
 				Type:                types.BoolType,
 				Optional:            true,
+				Computed:            true,
 			},
 		},
 	}, nil
