@@ -17,6 +17,7 @@ Environment resource
 
 ### Required
 
+- `kind` (String) Environment kind
 - `name` (String) Environment name
 - `tenant_id` (String) Tenant ID
 

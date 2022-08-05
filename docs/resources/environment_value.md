@@ -19,6 +19,10 @@ EnvironmentValue resource
 
 - `environment_id` (String) Environment ID
 - `key` (String) Key
-- `value` (String) Value
+- `value` (String, Sensitive) Value
+
+### Optional
+
+- `secret` (Boolean) Is hidden from Fasit UI
 
 

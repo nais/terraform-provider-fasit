@@ -40,6 +40,12 @@ func (f fasitEnvironmentValueResourceType) GetSchema(context.Context) (tfsdk.Sch
 				MarkdownDescription: "Value",
 				Required:            true,
 				Type:                types.StringType,
+				Sensitive:           true,
+			},
+			"secret": {
+				MarkdownDescription: "Is hidden from Fasit UI",
+				Type:                types.BoolType,
+				Optional:            true,
 			},
 		},
 	}, nil
@@ -61,6 +67,7 @@ type fasitEnvironmentValueData struct {
 	EnvironmentID types.String `tfsdk:"environment_id"`
 	Key           types.String `tfsdk:"key"`
 	Value         types.String `tfsdk:"value"`
+	Secret        types.Bool   `tfsdk:"secret"`
 }
 
 func (f fasitEnvironmentValueResource) Create(ctx context.Context, req tfsdk.CreateResourceRequest, resp *tfsdk.CreateResourceResponse) {
@@ -82,6 +89,7 @@ func (f fasitEnvironmentValueResource) Create(ctx context.Context, req tfsdk.Cre
 		EnvironmentId: data.EnvironmentID.Value,
 		Key:           data.Key.Value,
 		Value:         vb,
+		Secret:        data.Secret.Value,
 	})
 	if err != nil {
 		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to create EnvironmentValue, got error: %s", err))
@@ -124,6 +132,7 @@ func (f fasitEnvironmentValueResource) Read(ctx context.Context, req tfsdk.ReadR
 	}
 
 	data.Value = types.String{Value: s}
+	data.Secret = types.Bool{Value: res.Secret}
 
 	diags = resp.State.Set(ctx, &data)
 	resp.Diagnostics.Append(diags...)
@@ -148,6 +157,7 @@ func (f fasitEnvironmentValueResource) Update(ctx context.Context, req tfsdk.Upd
 		EnvironmentId: data.EnvironmentID.Value,
 		Key:           data.Key.Value,
 		Value:         vb,
+		Secret:        data.Secret.Value,
 	})
 	if err != nil {
 		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to create EnvironmentValue, got error: %s", err))

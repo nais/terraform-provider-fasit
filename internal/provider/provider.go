@@ -5,9 +5,9 @@ import (
 	"fmt"
 
 	"github.com/hashicorp/terraform-plugin-framework/diag"
+	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
 	"github.com/hashicorp/terraform-plugin-framework/types"
-	"github.com/hashicorp/terraform-plugin-go/tftypes"
 	"github.com/nais/terraform-provider-fasit/fasit/protogen"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
@@ -62,7 +62,7 @@ func (p *provider) Configure(ctx context.Context, req tfsdk.ConfigureProviderReq
 	// as authentication or logging, this is a great opportunity to do so.
 
 	if data.URL.Null {
-		resp.Diagnostics.AddAttributeError(tftypes.NewAttributePath(), "must be set", "A URL must be set")
+		resp.Diagnostics.AddAttributeError(path.Root("url"), "must be set", "A URL must be set")
 		return
 	}
 
