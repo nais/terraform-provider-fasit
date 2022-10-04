@@ -129,6 +129,7 @@ func (f fasitEnvironmentResource) Read(ctx context.Context, req tfsdk.ReadResour
 	})
 	if err != nil {
 		if isNotFound(err) {
+			resp.State.RemoveResource(ctx)
 			return
 		}
 		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to get environment, got error: %s", err))
