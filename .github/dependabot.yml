@@ -3,8 +3,12 @@ updates:
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
-      interval: "daily"
+      interval: "monthly"
+    reviewers:
+      - "@nais/core-dpendabot-reviewers"      
   - package-ecosystem: "gomod"
     directory: "/"
     schedule:
-      interval: "daily"
+      interval: "monthly"
+    reviewers:
+      - "@nais/core-dpendabot-reviewers"      
