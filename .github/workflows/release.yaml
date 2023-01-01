@@ -46,7 +46,7 @@ jobs:
           service_account: "gh-tf-provder-fasit@nais-io.iam.gserviceaccount.com"
           token_format: "access_token"
       - name: Run GoReleaser
-        uses: goreleaser/goreleaser-action@v3
+        uses: goreleaser/goreleaser-action@v4
         with:
           args: release --rm-dist
         env:
