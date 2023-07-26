@@ -25,8 +25,7 @@ jobs:
 
       - uses: actions/setup-go@v4
         with:
-          go-version-file: "go.mod"
-          cache: true
+          go-version: "^1.20.6"
 
       # This uses an action (crazy-max/ghaction-import-gpg) that assumes you set your
       # private key in the `gpg_private_key` secret and passphrase in the `passphrase`
