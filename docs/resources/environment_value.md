@@ -3,12 +3,12 @@
 page_title: "fasit_environment_value Resource - terraform-provider-fasit"
 subcategory: ""
 description: |-
-  EnvironmentValue resource
+  Resource for creating and managing fasit environment values
 ---
 
 # fasit_environment_value (Resource)
 
-EnvironmentValue resource
+Resource for creating and managing fasit environment values
 
 
 
@@ -24,5 +24,3 @@ EnvironmentValue resource
 ### Optional
 
 - `secret` (Boolean) Is hidden from Fasit UI
-
-
