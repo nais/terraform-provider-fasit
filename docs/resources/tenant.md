@@ -3,12 +3,12 @@
 page_title: "fasit_tenant Resource - terraform-provider-fasit"
 subcategory: ""
 description: |-
-  Tenant resource
+  Resource for creating and managing fasit tenants
 ---
 
 # fasit_tenant (Resource)
 
-Tenant resource
+Resource for creating and managing fasit tenants
 
 
 
@@ -22,5 +22,3 @@ Tenant resource
 ### Read-Only
 
 - `id` (String) Tenant ID
-
-

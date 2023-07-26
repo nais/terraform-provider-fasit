@@ -5,63 +5,76 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/hashicorp/terraform-plugin-framework/diag"
-	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
+	"github.com/hashicorp/terraform-plugin-framework/resource"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/nais/terraform-provider-fasit/fasit/protogen"
 )
 
-var (
-	_ tfsdk.ResourceType = fasitEnvironmentValueResourceType{}
-	_ tfsdk.Resource     = fasitEnvironmentValueResource{}
-)
+var _ resource.Resource = &fasitEnvironmentValueResource{}
 
-type fasitEnvironmentValueResourceType struct{}
+type fasitEnvironmentValueResource struct {
+	client protogen.ProviderClient
+}
 
-func (f fasitEnvironmentValueResourceType) GetSchema(context.Context) (tfsdk.Schema, diag.Diagnostics) {
-	return tfsdk.Schema{
-		MarkdownDescription: "EnvironmentValue resource",
-		Attributes: map[string]tfsdk.Attribute{
-			"environment_id": {
+func newFasitEnvironmentValueResource() resource.Resource {
+	return &fasitEnvironmentValueResource{}
+}
+
+func (r *fasitEnvironmentValueResource) Metadata(ctx context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
+	resp.TypeName = req.ProviderTypeName + "_environment_value"
+}
+
+func (r *fasitEnvironmentValueResource) Schema(ctx context.Context, req resource.SchemaRequest, resp *resource.SchemaResponse) {
+	resp.Schema = schema.Schema{
+		MarkdownDescription: "Resource for creating and managing fasit environment values",
+		Attributes: map[string]schema.Attribute{
+			"environment_id": schema.StringAttribute{
 				MarkdownDescription: "Environment ID",
 				Required:            true,
-				PlanModifiers: tfsdk.AttributePlanModifiers{
-					tfsdk.RequiresReplace(),
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.RequiresReplaceIfConfigured(),
 				},
-				Type: types.StringType,
 			},
-			"key": {
+			"key": schema.StringAttribute{
 				MarkdownDescription: "Key",
 				Required:            true,
-				Type:                types.StringType,
 			},
-			"value": {
+			"value": schema.StringAttribute{
 				MarkdownDescription: "Value",
 				Required:            true,
-				Type:                types.StringType,
 				Sensitive:           true,
 			},
-			"secret": {
+			"secret": schema.BoolAttribute{
 				MarkdownDescription: "Is hidden from Fasit UI",
-				Type:                types.BoolType,
 				Optional:            true,
 				Computed:            true,
 			},
 		},
-	}, nil
+	}
 }
 
-func (f fasitEnvironmentValueResourceType) NewResource(ctx context.Context, in tfsdk.Provider) (tfsdk.Resource, diag.Diagnostics) {
-	provider, diags := convertProviderType(in)
+func (r *fasitEnvironmentValueResource) Configure(ctx context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
+	// Prevent panic if the provider has not been configured.
+	if req.ProviderData == nil {
+		return
+	}
 
-	return fasitEnvironmentValueResource{
-		provider: provider,
-	}, diags
-}
+	client, ok := req.ProviderData.(protogen.ProviderClient)
 
-type fasitEnvironmentValueResource struct {
-	provider provider
+	if !ok {
+		resp.Diagnostics.AddError(
+			"Unexpected Resource Configure Type",
+			fmt.Sprintf("Expected *http.Client, got: %T. Please report this issue to the provider developers.", req.ProviderData),
+		)
+
+		return
+	}
+
+	r.client = client
 }
 
 type fasitEnvironmentValueData struct {
@@ -71,26 +84,25 @@ type fasitEnvironmentValueData struct {
 	Secret        types.Bool   `tfsdk:"secret"`
 }
 
-func (f fasitEnvironmentValueResource) Create(ctx context.Context, req tfsdk.CreateResourceRequest, resp *tfsdk.CreateResourceResponse) {
+func (f fasitEnvironmentValueResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
 	var data fasitEnvironmentValueData
-	diags := req.Config.Get(ctx, &data)
-	resp.Diagnostics.Append(diags...)
+	resp.Diagnostics.Append(req.Config.Get(ctx, &data)...)
 
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
-	vb, err := json.Marshal(data.Value.Value)
+	vb, err := json.Marshal(data.Value.ValueString())
 	if err != nil {
 		resp.Diagnostics.AddError("Failed to marshal value", err.Error())
 		return
 	}
 
-	_, err = f.provider.client.CreateOrUpdateEnvironmentValue(ctx, &protogen.CreateOrUpdateEnvironmentValueRequest{
-		EnvironmentId: data.EnvironmentID.Value,
-		Key:           data.Key.Value,
+	_, err = f.client.CreateOrUpdateEnvironmentValue(ctx, &protogen.CreateOrUpdateEnvironmentValueRequest{
+		EnvironmentId: data.EnvironmentID.ValueString(),
+		Key:           data.Key.ValueString(),
 		Value:         vb,
-		Secret:        data.Secret.Value,
+		Secret:        data.Secret.ValueBool(),
 	})
 	if err != nil {
 		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to create EnvironmentValue, got error: %s", err))
@@ -99,23 +111,21 @@ func (f fasitEnvironmentValueResource) Create(ctx context.Context, req tfsdk.Cre
 
 	tflog.Trace(ctx, "create EnvironmentValue")
 
-	diags = resp.State.Set(ctx, &data)
-	resp.Diagnostics.Append(diags...)
+	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
 }
 
-func (f fasitEnvironmentValueResource) Read(ctx context.Context, req tfsdk.ReadResourceRequest, resp *tfsdk.ReadResourceResponse) {
+func (f fasitEnvironmentValueResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
 	var data fasitEnvironmentValueData
 
-	diags := req.State.Get(ctx, &data)
-	resp.Diagnostics.Append(diags...)
+	resp.Diagnostics.Append(req.State.Get(ctx, &data)...)
 
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
-	res, err := f.provider.client.GetEnvironmentValue(ctx, &protogen.GetEnvironmentValueRequest{
-		EnvironmentId: data.EnvironmentID.Value,
-		Key:           data.Key.Value,
+	res, err := f.client.GetEnvironmentValue(ctx, &protogen.GetEnvironmentValueRequest{
+		EnvironmentId: data.EnvironmentID.ValueString(),
+		Key:           data.Key.ValueString(),
 	})
 	if err != nil {
 		if isNotFound(err) {
@@ -132,33 +142,31 @@ func (f fasitEnvironmentValueResource) Read(ctx context.Context, req tfsdk.ReadR
 		return
 	}
 
-	data.Value = types.String{Value: s}
-	data.Secret = types.Bool{Value: res.Secret}
+	data.Value = types.StringValue(s)
+	data.Secret = types.BoolValue(res.Secret)
 
-	diags = resp.State.Set(ctx, &data)
-	resp.Diagnostics.Append(diags...)
+	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
 }
 
-func (f fasitEnvironmentValueResource) Update(ctx context.Context, req tfsdk.UpdateResourceRequest, resp *tfsdk.UpdateResourceResponse) {
+func (f fasitEnvironmentValueResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
 	var data fasitEnvironmentValueData
-	diags := req.Config.Get(ctx, &data)
-	resp.Diagnostics.Append(diags...)
+	resp.Diagnostics.Append(req.Config.Get(ctx, &data)...)
 
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
-	vb, err := json.Marshal(data.Value.Value)
+	vb, err := json.Marshal(data.Value.ValueString())
 	if err != nil {
 		resp.Diagnostics.AddError("Failed to marshal value", err.Error())
 		return
 	}
 
-	_, err = f.provider.client.CreateOrUpdateEnvironmentValue(ctx, &protogen.CreateOrUpdateEnvironmentValueRequest{
-		EnvironmentId: data.EnvironmentID.Value,
-		Key:           data.Key.Value,
+	_, err = f.client.CreateOrUpdateEnvironmentValue(ctx, &protogen.CreateOrUpdateEnvironmentValueRequest{
+		EnvironmentId: data.EnvironmentID.ValueString(),
+		Key:           data.Key.ValueString(),
 		Value:         vb,
-		Secret:        data.Secret.Value,
+		Secret:        data.Secret.ValueBool(),
 	})
 	if err != nil {
 		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to create EnvironmentValue, got error: %s", err))
@@ -167,9 +175,9 @@ func (f fasitEnvironmentValueResource) Update(ctx context.Context, req tfsdk.Upd
 
 	tflog.Trace(ctx, "create EnvironmentValue")
 
-	diags = resp.State.Set(ctx, &data)
-	resp.Diagnostics.Append(diags...)
+	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
 }
 
-func (f fasitEnvironmentValueResource) Delete(context.Context, tfsdk.DeleteResourceRequest, *tfsdk.DeleteResourceResponse) {
+func (f fasitEnvironmentValueResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
+	resp.Diagnostics.AddWarning("fasit_environment_value cannot be deleted", "This operation is a no-op")
 }

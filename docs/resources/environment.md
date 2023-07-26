@@ -3,12 +3,12 @@
 page_title: "fasit_environment Resource - terraform-provider-fasit"
 subcategory: ""
 description: |-
-  Environment resource
+  Resource for creating and managing fasit environments
 ---
 
 # fasit_environment (Resource)
 
-Environment resource
+Resource for creating and managing fasit environments
 
 
 
@@ -23,6 +23,4 @@ Environment resource
 
 ### Read-Only
 
-- `id` (String) Environment ID
-
-
+- `id` (String) Tenant ID
