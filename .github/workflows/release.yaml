@@ -22,40 +22,38 @@ jobs:
         with:
           # Allow goreleaser to access older tag information.
           fetch-depth: 0
+
       - uses: actions/setup-go@v4
         with:
           go-version-file: "go.mod"
           cache: true
+
       # This uses an action (crazy-max/ghaction-import-gpg) that assumes you set your
       # private key in the `gpg_private_key` secret and passphrase in the `passphrase`
       # secret. If you would rather own your own GPG handling, please fork this action
       # or use an alternative one for key handling.
       - name: Import GPG key
         id: import_gpg
-<<<<<<< HEAD
-        uses: crazy-max/ghaction-import-gpg@v5.2.0
-=======
         uses: crazy-max/ghaction-import-gpg@v5.3.0
->>>>>>> 6a303f3 (Upgrades)
         with:
           gpg_private_key: ${{ secrets.GPG_PRIVATE_KEY }}
           passphrase: ${{ secrets.PASSPHRASE }}
+
       - name: Install api-generator
         run: go install github.com/mollie/tf-provider-registry-api-generator@latest
+
       - id: "auth"
         name: "Authenticate to Google Cloud"
-<<<<<<< HEAD
-        uses: "google-github-actions/auth@v1.0.0"
-=======
         uses: "google-github-actions/auth@v1"
->>>>>>> 6a303f3 (Upgrades)
         with:
           workload_identity_provider: ${{ secrets.NAIS_IO_WORKLOAD_IDENTITY_PROVIDER }}
           service_account: "gh-tf-provder-fasit@nais-io.iam.gserviceaccount.com"
           token_format: "access_token"
+          create_credentials_file: true
+
       - name: Run GoReleaser
         uses: goreleaser/goreleaser-action@v4
         with:
-          args: release --rm-dist
+          args: release --clean
         env:
           GPG_FINGERPRINT: ${{ steps.import_gpg.outputs.fingerprint }}
