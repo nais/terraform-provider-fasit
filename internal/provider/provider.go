@@ -90,8 +90,12 @@ func (f *FasitProvider) Metadata(ctx context.Context, req provider.MetadataReque
 func (f *FasitProvider) Schema(ctx context.Context, req provider.SchemaRequest, resp *provider.SchemaResponse) {
 	resp.Schema = schema.Schema{
 		Attributes: map[string]schema.Attribute{
-			"endpoint": schema.StringAttribute{
-				MarkdownDescription: "Example provider attribute",
+			"url": schema.StringAttribute{
+				MarkdownDescription: "url",
+				Required:            true,
+			},
+			"insecure": schema.BoolAttribute{
+				MarkdownDescription: "insecure",
 				Optional:            true,
 			},
 		},
