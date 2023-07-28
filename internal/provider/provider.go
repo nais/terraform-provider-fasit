@@ -40,8 +40,8 @@ type FasitProvider struct {
 
 // FasitProviderModel can be used to store data from the Terraform configuration.
 type FasitProviderModel struct {
-	URL      types.String `provider:"url"`
-	Insecure types.Bool   `provider:"insecure"`
+	URL      types.String `provider:"url" tfsdk:"url"`
+	Insecure types.Bool   `provider:"insecure" tfsdk:"insecure"`
 }
 
 func (f *FasitProvider) Configure(ctx context.Context, req provider.ConfigureRequest, resp *provider.ConfigureResponse) {
