@@ -112,7 +112,7 @@ func (f *FasitProvider) Resources(ctx context.Context) []func() resource.Resourc
 
 func (f *FasitProvider) DataSources(ctx context.Context) []func() datasource.DataSource {
 	return []func() datasource.DataSource{
-		// NewExampleDataSource,
+		newEnvironmentValuesAcrossEnvs,
 	}
 }
 
