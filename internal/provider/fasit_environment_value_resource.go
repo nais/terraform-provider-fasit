@@ -179,5 +179,20 @@ func (f fasitEnvironmentValueResource) Update(ctx context.Context, req resource.
 }
 
 func (f fasitEnvironmentValueResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
-	resp.Diagnostics.AddWarning("fasit_environment_value cannot be deleted", "This operation is a no-op")
+	var data fasitEnvironmentValueData
+
+	resp.Diagnostics.Append(req.State.Get(ctx, &data)...)
+
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	_, err := f.client.DeleteEnvironmentValue(ctx, &protogen.DeleteEnvironmentValueRequest{
+		EnvironmentId: data.EnvironmentID.ValueString(),
+		Key:           data.Key.ValueString(),
+	})
+	if err != nil {
+		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to get EnvironmentValue, got error: %s", err))
+		return
+	}
 }
