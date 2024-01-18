@@ -14,7 +14,10 @@ import (
 	"github.com/nais/terraform-provider-fasit/fasit/protogen"
 )
 
-var _ resource.Resource = &fasitEnvironmentResource{}
+var (
+	_ resource.Resource                = &fasitEnvironmentResource{}
+	_ resource.ResourceWithImportState = &fasitEnvironmentResource{}
+)
 
 type fasitEnvironmentResource struct {
 	client protogen.ProviderClient
@@ -161,4 +164,8 @@ func (f fasitEnvironmentResource) Update(ctx context.Context, req resource.Updat
 
 func (f fasitEnvironmentResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
 	resp.Diagnostics.AddWarning("fasit_environment cannot be deleted", "This operation is a no-op")
+}
+
+func (f fasitEnvironmentResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
+	resource.ImportStatePassthroughID(ctx, path.Root("id"), req, resp)
 }
