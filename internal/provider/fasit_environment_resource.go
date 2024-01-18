@@ -3,6 +3,7 @@ package provider
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
@@ -167,5 +168,15 @@ func (f fasitEnvironmentResource) Delete(ctx context.Context, req resource.Delet
 }
 
 func (f fasitEnvironmentResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
-	resource.ImportStatePassthroughID(ctx, path.Root("id"), req, resp)
+	idparts := strings.Split(req.ID, "/")
+	if len(idparts) != 2 {
+		resp.Diagnostics.AddError("error importing Fasit Environment", "invalid ID specified. Please specify the ID as \"tenant_id/env_name\"")
+		return
+	}
+	resp.Diagnostics.Append(resp.State.SetAttribute(
+		ctx, path.Root("tenant_id"), idparts[0],
+	)...)
+	resp.Diagnostics.Append(resp.State.SetAttribute(
+		ctx, path.Root("name"), idparts[1],
+	)...)
 }
