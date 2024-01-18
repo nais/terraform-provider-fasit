@@ -169,14 +169,30 @@ func (f fasitEnvironmentResource) Delete(ctx context.Context, req resource.Delet
 
 func (f fasitEnvironmentResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
 	idparts := strings.Split(req.ID, "/")
-	if len(idparts) != 2 {
-		resp.Diagnostics.AddError("error importing Fasit Environment", "invalid ID specified. Please specify the ID as \"tenant_id/env_name\"")
+	if len(idparts) != 3 {
+		resp.Diagnostics.AddError("error importing Fasit Environment", "invalid ID specified. Please specify the ID as \"tenant_id/env_name/kind\"")
 		return
 	}
+
+	res, err := f.client.GetEnvironment(ctx, &protogen.GetEnvironmentRequest{
+		TenantId: idparts[0],
+		Name:     idparts[1],
+	})
+	if err != nil {
+		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to get environment, got error: %s", err))
+		return
+	}
+
+	resp.Diagnostics.Append(resp.State.SetAttribute(
+		ctx, path.Root("id"), types.StringValue(res.Id),
+	)...)
 	resp.Diagnostics.Append(resp.State.SetAttribute(
 		ctx, path.Root("tenant_id"), idparts[0],
 	)...)
 	resp.Diagnostics.Append(resp.State.SetAttribute(
 		ctx, path.Root("name"), idparts[1],
+	)...)
+	resp.Diagnostics.Append(resp.State.SetAttribute(
+		ctx, path.Root("kind"), idparts[2],
 	)...)
 }
