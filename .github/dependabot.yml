@@ -3,12 +3,20 @@ updates:
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
-      interval: "monthly"
+      interval: "weekly"
+    groups:
+      gha:
+        patterns:
+          - '*'
     reviewers:
       - "@nais/core-dependabot-reviewers"      
   - package-ecosystem: "gomod"
     directory: "/"
     schedule:
-      interval: "monthly"
+      interval: "weekly"
+    groups:
+      gomod:
+        patterns:
+          - '*'
     reviewers:
       - "@nais/core-dependabot-reviewers"      
