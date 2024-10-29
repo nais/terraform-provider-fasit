@@ -1,5 +1,6 @@
 # Visit https://goreleaser.com for documentation on how to customize this
 # behavior.
+version: 2
 before:
   hooks:
     # this is just an example and not a requirement for provider building/publishing
@@ -47,7 +48,7 @@ signs:
 blobs:
   - provider: gs
     bucket: "nais-terraform-providers"
-    folder: "binaries/nais/{{ .ProjectName }}/{{ .Tag }}"
+    directory: "binaries/nais/{{ .ProjectName }}/{{ .Tag }}"
 publishers:
   - name: generate-tf-api-documents
     cmd: >-
@@ -71,4 +72,4 @@ release:
 # If you want to manually examine the release before its live, uncomment this line:
 # draft: true
 changelog:
-  skip: true
+  disable: true
