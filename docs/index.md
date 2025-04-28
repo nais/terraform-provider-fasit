@@ -46,3 +46,13 @@ resource "fasit_environment_value" "name" {
 ### Optional
 
 - `insecure` (Boolean) insecure
+
+## Resources
+
+- [fasit_environment](resources/environment)
+- [fasit_environment_value](resources/environment_value)
+- [fasit_tenant](/resources/tenant)
+
+## Data sources
+
+- [fasit_environment_values_across_envs](data-sources/environment_values_across_envs)
