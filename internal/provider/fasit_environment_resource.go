@@ -174,9 +174,9 @@ func (f fasitEnvironmentResource) Read(ctx context.Context, req resource.ReadReq
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
 }
 
-func labelsFromProto(labels *protogen.EnvironmentLabels) types.Map {
+func labelsFromProto(labels []*protogen.EnvironmentLabel) types.Map {
 	ret := map[string]attr.Value{}
-	for _, l := range labels.Entries {
+	for _, l := range labels {
 		ret[l.Key] = types.StringValue(l.Value)
 	}
 	return types.MapValueMust(types.StringType, ret)
@@ -209,17 +209,15 @@ func (f fasitEnvironmentResource) Update(ctx context.Context, req resource.Updat
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
 }
 
-func labelsToProto(labels types.Map) *protogen.EnvironmentLabels {
-	entries := make([]*protogen.EnvironmentLabelsEntry, 0)
+func labelsToProto(labels types.Map) []*protogen.EnvironmentLabel {
+	entries := make([]*protogen.EnvironmentLabel, 0)
 	for k, v := range labels.Elements() {
-		entries = append(entries, &protogen.EnvironmentLabelsEntry{
+		entries = append(entries, &protogen.EnvironmentLabel{
 			Key:   k,
 			Value: v.(types.String).ValueString(),
 		})
 	}
-	return &protogen.EnvironmentLabels{
-		Entries: entries,
-	}
+	return entries
 }
 
 func (f fasitEnvironmentResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
