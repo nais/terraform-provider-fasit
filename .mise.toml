@@ -1,0 +1,9 @@
+[settings]
+pin = true
+
+[tools]
+go = "1.25.1"
+opentofu = "1.10.6"
+protoc = "25.3"
+protoc-gen-go = "1.35.2"
+protoc-gen-go-grpc = "1.5.1"

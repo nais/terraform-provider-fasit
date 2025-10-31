@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
@@ -33,6 +34,7 @@ type fasitEnvironmentData struct {
 	TenantID types.String `tfsdk:"tenant_id"`
 	Name     types.String `tfsdk:"name"`
 	Kind     types.String `tfsdk:"kind"`
+	Labels   types.Map    `tfsdk:"labels"`
 }
 
 func (r *fasitEnvironmentResource) Metadata(ctx context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
@@ -47,6 +49,9 @@ func (r *fasitEnvironmentResource) Schema(ctx context.Context, req resource.Sche
 			"id": schema.StringAttribute{
 				MarkdownDescription: "Tenant ID",
 				Computed:            true,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
+				},
 			},
 			"name": schema.StringAttribute{
 				MarkdownDescription: "Environment name",
@@ -68,6 +73,11 @@ func (r *fasitEnvironmentResource) Schema(ctx context.Context, req resource.Sche
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.RequiresReplaceIfConfigured(),
 				},
+			},
+			"labels": schema.MapAttribute{
+				ElementType:         types.StringType,
+				MarkdownDescription: "Environment labels",
+				Optional:            true,
 			},
 		},
 	}
@@ -116,10 +126,12 @@ func (f fasitEnvironmentResource) Create(ctx context.Context, req resource.Creat
 		return
 	}
 
+	labels := labelsToProto(data.Labels)
 	res, err := f.client.CreateEnvironment(ctx, &protogen.CreateEnvironmentRequest{
 		Name:     data.Name.ValueString(),
 		TenantId: data.TenantID.ValueString(),
 		Kind:     kind,
+		Labels:   labels,
 	})
 	if err != nil {
 		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to create environment, got error: %s", err))
@@ -156,11 +168,56 @@ func (f fasitEnvironmentResource) Read(ctx context.Context, req resource.ReadReq
 
 	data.ID = types.StringValue(res.Id)
 
+	if res.Labels != nil {
+		data.Labels = labelsFromProto(res.Labels)
+	}
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
 }
 
+func labelsFromProto(labels []*protogen.EnvironmentLabel) types.Map {
+	ret := map[string]attr.Value{}
+	for _, l := range labels {
+		ret[l.Key] = types.StringValue(l.Value)
+	}
+	return types.MapValueMust(types.StringType, ret)
+}
+
 func (f fasitEnvironmentResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
-	resp.Diagnostics.AddWarning("fasit_environment is immutable, please delete and recreate", "This operation is a no-op")
+	var config fasitEnvironmentData
+	resp.Diagnostics.Append(req.Config.Get(ctx, &config)...)
+
+	var state fasitEnvironmentData
+	resp.Diagnostics.Append(req.State.Get(ctx, &state)...)
+
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	labels := labelsToProto(config.Labels)
+	_, err := f.client.UpdateEnvironment(ctx, &protogen.UpdateEnvironmentRequest{
+		EnvironmentId: state.ID.ValueString(),
+		Labels:        labels,
+	})
+	if err != nil {
+		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to update environment, got error: %s", err))
+		return
+	}
+
+	tflog.Trace(ctx, "update environment")
+	state.Labels = config.Labels
+
+	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
+}
+
+func labelsToProto(labels types.Map) []*protogen.EnvironmentLabel {
+	entries := make([]*protogen.EnvironmentLabel, 0)
+	for k, v := range labels.Elements() {
+		entries = append(entries, &protogen.EnvironmentLabel{
+			Key:   k,
+			Value: v.(types.String).ValueString(),
+		})
+	}
+	return entries
 }
 
 func (f fasitEnvironmentResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
@@ -194,5 +251,8 @@ func (f fasitEnvironmentResource) ImportState(ctx context.Context, req resource.
 	)...)
 	resp.Diagnostics.Append(resp.State.SetAttribute(
 		ctx, path.Root("kind"), idparts[2],
+	)...)
+	resp.Diagnostics.Append(resp.State.SetAttribute(
+		ctx, path.Root("labels"), res.Labels,
 	)...)
 }
