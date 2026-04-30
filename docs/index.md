@@ -33,6 +33,7 @@ resource "fasit_environment_value" "name" {
   environment_id = fasit_environment.name.id
   key            = "key"
   value          = "value"
+  hide_in_fasit  = false
 }
 ```
 
