@@ -1,20 +1,19 @@
 ---
-page_title: "Resource fasit_environment_value - Fasit"
+page_title: "Resource fasit_environment_value - fasit"
 subcategory: ""
 description: |-
-    Resource for creating and managing Fasit environment values
+    Resource for creating and managing fasit environment values
 ---
 
 # Resource fasit_environment_value
 
-Resource for creating and managing Fasit environment values
+Resource for creating and managing fasit environment values
 
 ## Sensitive Values
 
-The `value` attribute is always marked as sensitive in Terraform, it will never appear in plain text in plan or apply output.
+The `value` attribute is always marked as sensitive in Terraform — it will never appear in plain text in plan or apply output.
 
-To also hide the value in the Fasit UI, set `hide_in_fasit = true`.
-This tells the Fasit API to treat the value as a secret server-side.
+To also hide the value in the Fasit UI, set `hide_in_fasit = true`. This tells the Fasit API to treat the value as a secret server-side.
 
 If your value comes from a sensitive source (e.g. a variable or another resource output), you can pass it directly — Terraform will propagate the sensitivity automatically:
 
@@ -37,8 +36,9 @@ resource "fasit_environment_value" "db_password" {
 ```terraform
 resource "fasit_environment_value" "example" {
   environment_id = fasit_environment.example.id
-  key            = "MY_KEY"
-  value          = var.my_value
+  key            = "MY_SECRET"
+  value          = var.my_secret_value
+  hide_in_fasit  = true
 }
 ```
 
