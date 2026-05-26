@@ -9,20 +9,14 @@ import (
 	"github.com/nais/terraform-provider-fasit/internal/provider"
 )
 
-// Run "go generate" to format example terraform files and generate the docs for the registry/website
+// Run "mise run generate" to format example terraform files and generate the docs for the registry/website.
+//
+// Keep docs generation on Terraform (not OpenTofu) to avoid registry host mismatches during schema export.
 
-// If you do not have terraform installed, you can remove the formatting command, but its suggested to
-// ensure the documentation is formatted properly.
-//go:generate terraform fmt -recursive ./examples/
+//go:generate mise x terraform@1.10.5 -- terraform fmt -recursive ./examples/
+//go:generate go run github.com/hashicorp/terraform-plugin-docs/cmd/tfplugindocs generate --tf-version 1.10.5
 
-// Run the docs generation tool, check its repository for more information on how it works and how docs
-// can be customized.
-//go:generate go run github.com/hashicorp/terraform-plugin-docs/cmd/tfplugindocs
-
-// these will be set by the goreleaser configuration
-// to appropriate values for the compiled binary
 var version string = "dev" // goreleaser can also pass the specific commit if you want
-// var commit  string = ""
 
 func main() {
 	var debug bool
@@ -31,8 +25,7 @@ func main() {
 	flag.Parse()
 
 	opts := providerserver.ServeOpts{
-		// TODO: Update this string with the published name of your provider.
-		Address: "registry.terraform.io/nais/fasit",
+		Address: "tfregistry.cloud.nais.io/nais/fasit",
 		Debug:   debug,
 	}
 

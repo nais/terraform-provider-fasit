@@ -59,3 +59,11 @@ run = "go run ."
 [tasks."test"]
 description = "Test Go code"
 run = "go test ./..."
+
+[tasks."generate"]
+description = "Generate code/docs (go generate)"
+run = "go generate ./..."
+
+[tasks."docs:validate"]
+description = "Validate generated docs (tfplugindocs validate)"
+run = "go run github.com/hashicorp/terraform-plugin-docs/cmd/tfplugindocs validate --tf-version 1.10.5"

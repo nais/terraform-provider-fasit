@@ -21,6 +21,10 @@ Resource for creating and managing fasit environments
 - `name` (String) Environment name
 - `tenant_id` (String) Tenant ID
 
+### Optional
+
+- `labels` (Map of String) Environment labels
+
 ### Read-Only
 
 - `id` (String) Tenant ID
