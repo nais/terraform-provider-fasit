@@ -2,10 +2,8 @@ package provider
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
-	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/provider"
 	"github.com/hashicorp/terraform-plugin-framework/provider/schema"
@@ -70,7 +68,7 @@ func (f *FasitProvider) Configure(ctx context.Context, req provider.ConfigureReq
 		opts = append(opts, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	}
 
-	gclient, err := grpc.Dial(data.URL.ValueString(), opts...)
+	gclient, err := grpc.NewClient(data.URL.ValueString(), opts...)
 	if err != nil {
 		resp.Diagnostics.AddError("Failed to connect to provider", err.Error())
 		return
@@ -122,35 +120,6 @@ func New(version string) func() provider.Provider {
 			version: version,
 		}
 	}
-}
-
-// convertProviderType is a helper function for NewResource and NewDataSource
-// implementations to associate the concrete provider type. Alternatively,
-// this helper can be skipped and the provider type can be directly type
-// asserted (e.g. provider: in.(*provider)), however using this can prevent
-// potential panics.
-func convertProviderType(in provider.Provider) (FasitProvider, diag.Diagnostics) {
-	var diags diag.Diagnostics
-
-	p, ok := in.(*FasitProvider)
-
-	if !ok {
-		diags.AddError(
-			"Unexpected Provider Instance Type",
-			fmt.Sprintf("While creating the data source or resource, an unexpected provider type (%T) was received. This is always a bug in the provider code and should be reported to the provider developers.", p),
-		)
-		return FasitProvider{}, diags
-	}
-
-	if p == nil {
-		diags.AddError(
-			"Unexpected Provider Instance Type",
-			"While creating the data source or resource, an unexpected empty provider instance was received. This is always a bug in the provider code and should be reported to the provider developers.",
-		)
-		return FasitProvider{}, diags
-	}
-
-	return *p, diags
 }
 
 func isNotFound(err error) bool {

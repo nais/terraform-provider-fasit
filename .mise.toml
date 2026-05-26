@@ -2,8 +2,60 @@
 pin = true
 
 [tools]
-go = "1.25.1"
+go = "1.26"
 opentofu = "1.10.6"
 protoc = "25.3"
 protoc-gen-go = "1.35.2"
 protoc-gen-go-grpc = "1.5.1"
+
+[tasks."check"]
+description = "Run all checks"
+run = "unset MISE_TASK_OUTPUT && mise run check:deadcode ::: check:gosec ::: check:staticcheck ::: check:vulncheck"
+
+[tasks."check:deadcode"]
+description = "Run deadcode"
+run = "go tool golang.org/x/tools/cmd/deadcode -test -tags integration_test ./..."
+
+[tasks."check:gosec"]
+description = "Run gosec"
+run = "go tool github.com/securego/gosec/v2/cmd/gosec --exclude-generated -terse ./..."
+
+[tasks."check:staticcheck"]
+description = "Run staticcheck"
+run = "go tool honnef.co/go/tools/cmd/staticcheck ./..."
+
+[tasks."check:vulncheck"]
+description = "Run vulncheck"
+run = "go tool golang.org/x/vuln/cmd/govulncheck ./..."
+
+[tasks."fmt"]
+description = "Format all code"
+run = "mise run fmt:go ::: fmt:gofix"
+
+[tasks."fmt:go"]
+description = "Format go code using gofumpt"
+run = "go tool mvdan.cc/gofumpt -w ./"
+
+[tasks."fmt:gofix"]
+description = "Fix runs the Go fix tool (cmd/fix) on the named packages and applies suggested fixes."
+run = "go fix ./..."
+
+[tasks."update:tools"]
+description = "Update all Go tools to latest"
+run = """
+go get \
+  github.com/securego/gosec/v2/cmd/gosec@latest \
+  golang.org/x/tools/cmd/deadcode@latest \
+  golang.org/x/vuln/cmd/govulncheck@latest \
+  honnef.co/go/tools/cmd/staticcheck@latest \
+  mvdan.cc/gofumpt@latest
+go mod tidy
+"""
+
+[tasks."local"]
+description = "Run Go"
+run = "go run ."
+
+[tasks."test"]
+description = "Test Go code"
+run = "go test ./..."
