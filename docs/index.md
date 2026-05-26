@@ -30,7 +30,6 @@ terraform {
 provider "fasit" {
   insecure = true
   url      = "http://localhost:8080"
-  # example configuration here
 }
 
 resource "fasit_tenant" "name" {
