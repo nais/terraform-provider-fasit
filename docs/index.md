@@ -29,7 +29,7 @@ terraform {
 
 provider "fasit" {
   insecure = true
-  url      = "http://localhost:8080"
+  url      = "fasit-backend.nais-system:4444"
 }
 
 resource "fasit_tenant" "name" {
