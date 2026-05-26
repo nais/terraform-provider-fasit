@@ -48,8 +48,8 @@ func (r *fasitEnvironmentValueResource) Schema(ctx context.Context, req resource
 				Required:            true,
 				Sensitive:           true,
 			},
-			"secret": schema.BoolAttribute{
-				MarkdownDescription: "Is hidden from Fasit UI",
+			"hide_in_fasit": schema.BoolAttribute{
+				MarkdownDescription: "Whether to hide this value in the Fasit UI",
 				Optional:            true,
 				Computed:            true,
 			},
@@ -81,7 +81,7 @@ type fasitEnvironmentValueData struct {
 	EnvironmentID types.String `tfsdk:"environment_id"`
 	Key           types.String `tfsdk:"key"`
 	Value         types.String `tfsdk:"value"`
-	Secret        types.Bool   `tfsdk:"secret"`
+	HideInFasit   types.Bool   `tfsdk:"hide_in_fasit"`
 }
 
 func (f fasitEnvironmentValueResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
@@ -102,7 +102,7 @@ func (f fasitEnvironmentValueResource) Create(ctx context.Context, req resource.
 		EnvironmentId: data.EnvironmentID.ValueString(),
 		Key:           data.Key.ValueString(),
 		Value:         vb,
-		Secret:        data.Secret.ValueBool(),
+		Secret:        data.HideInFasit.ValueBool(),
 	})
 	if err != nil {
 		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to create EnvironmentValue, got error: %s", err))
@@ -143,7 +143,7 @@ func (f fasitEnvironmentValueResource) Read(ctx context.Context, req resource.Re
 	}
 
 	data.Value = types.StringValue(s)
-	data.Secret = types.BoolValue(res.Secret)
+	data.HideInFasit = types.BoolValue(res.Secret)
 
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
 }
@@ -166,7 +166,7 @@ func (f fasitEnvironmentValueResource) Update(ctx context.Context, req resource.
 		EnvironmentId: data.EnvironmentID.ValueString(),
 		Key:           data.Key.ValueString(),
 		Value:         vb,
-		Secret:        data.Secret.ValueBool(),
+		Secret:        data.HideInFasit.ValueBool(),
 	})
 	if err != nil {
 		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to create EnvironmentValue, got error: %s", err))

@@ -30,8 +30,8 @@ Read-Only:
 
 - `environment_id` (String) The ID of the environment the environment value belongs to
 - `environment_name` (String) The name of the environment the environment value belongs to
+- `hide_in_fasit` (Boolean) Whether the environment value is hidden in the Fasit UI
 - `key` (String) The key to get environment values for
-- `secret` (Boolean) Whether or not the environment value is a secret
 - `tenant_id` (String) The ID of the tenant the environment value belongs to
 - `tenant_name` (String) The name of the tenant the environment value belongs to
 - `value` (String) The value of the environment value. JSON encoded
