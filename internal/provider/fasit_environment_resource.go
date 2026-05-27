@@ -119,8 +119,6 @@ func (f fasitEnvironmentResource) Create(ctx context.Context, req resource.Creat
 		kind = protogen.EnvironmentKind_TENANT
 	case "onprem":
 		kind = protogen.EnvironmentKind_ONPREM
-	case "legacy":
-		kind = protogen.EnvironmentKind_LEGACY
 	default:
 		resp.Diagnostics.AddAttributeError(path.Root("kind"), "Invalid kind", fmt.Sprintf("Invalid kind: %s", data.Kind.ValueString()))
 		return
