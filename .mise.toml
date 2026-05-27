@@ -67,3 +67,7 @@ run = "go generate ./..."
 [tasks."docs:validate"]
 description = "Validate generated docs (tfplugindocs validate)"
 run = "go run github.com/hashicorp/terraform-plugin-docs/cmd/tfplugindocs validate --tf-version 1.10.5"
+
+[tasks."build"]
+description = "Build provider binary for dev_overrides"
+run = "go build -o terraform-provider-fasit ."

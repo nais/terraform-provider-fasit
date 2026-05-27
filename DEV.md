@@ -1,42 +1,55 @@
-# To test the provider locally
+# Testing the provider locally
 
-Create a directory for your architecture as follows:
-
-```bash
-mkdir -p ~/.terraform.d/plugins/registry.local/nais/fasit/1.0.0-local/<arch>/
-```
-
-Linux AMD64:
+**1. Build the provider:**
 
 ```bash
-mkdir -p ~/.terraform.d/plugins/registry.local/nais/fasit/1.0.0-local/linux_amd64/
+mise run build
 ```
 
-Build the plugin into the directory:
+**2. Configure dev_overrides:**
+
+Create a `dev.tfrc` file in the repo root (already gitignored):
+
+```hcl
+provider_installation {
+  dev_overrides {
+    "tfregistry.cloud.nais.io/nais/fasit" = "../path/to/terraform-provider-fasit"
+  }
+  direct {}
+}
+```
+
+Then point OpenTofu at this file by setting `TF_CLI_CONFIG_FILE`:
 
 ```bash
-go build -o ~/.terraform.d/plugins/registry.local/nais/fasit/1.0.0-local/<arch>/terraform-provider-fasit_v1.0.0-local
-
-# Example for Linux AMD64
-go build -o ~/.terraform.d/plugins/registry.local/nais/fasit/1.0.0-local/linux_amd64/terraform-provider-fasit_v1.0.0-local
+export TF_CLI_CONFIG_FILE=$(pwd)/dev.tfrc
 ```
 
-Add the following to your terraform file:
+**3. Write a test config:**
 
 ```terraform
-terraform {
-  required_providers {
-    fasit = {
-      source  = "registry.local/nais/fasit"
-      version = "1.0.0-local"
-    }
-  }
+provider "fasit" {
+  url      = "localhost:4444"
+  insecure = true
 }
 
-provider "fasit" {
-  url = "http://localhost:4444"
-  insecure = true
+resource "fasit_environment_value" "test" {
+  environment_id = "<your-environment-id>"
+  key            = "hello"
+  value          = "world"
+  hide_in_fasit  = false
 }
 ```
 
-Run `terraform init` to initialize the plugin.
+**4. Port-forward to the Fasit service:**
+
+```bash
+kubectl port-forward svc/fasit 4444:4444 -n nais-system
+```
+
+**5. Run plan/apply:**
+
+```bash
+tofu plan
+tofu apply
+```
