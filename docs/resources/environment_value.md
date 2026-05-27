@@ -19,7 +19,7 @@ Resource for creating and managing fasit environment values
 
 - `environment_id` (String) Environment ID
 - `key` (String) Key
-- `value` (String, Sensitive) Value
+- `value` (String) Value
 
 ### Optional
 

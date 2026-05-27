@@ -7,6 +7,7 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/types"
@@ -48,12 +49,12 @@ func (r *fasitEnvironmentValueResource) Schema(ctx context.Context, req resource
 			"value": schema.StringAttribute{
 				MarkdownDescription: "Value",
 				Required:            true,
-				Sensitive:           true,
 			},
 			"hide_in_fasit": schema.BoolAttribute{
 				MarkdownDescription: "Whether to hide this value in the Fasit UI",
 				Optional:            true,
 				Computed:            true,
+				Default:             booldefault.StaticBool(false),
 			},
 		},
 	}
@@ -88,7 +89,7 @@ type fasitEnvironmentValueData struct {
 
 func (f fasitEnvironmentValueResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
 	var data fasitEnvironmentValueData
-	resp.Diagnostics.Append(req.Config.Get(ctx, &data)...)
+	resp.Diagnostics.Append(req.Plan.Get(ctx, &data)...)
 
 	if resp.Diagnostics.HasError() {
 		return
@@ -152,7 +153,7 @@ func (f fasitEnvironmentValueResource) Read(ctx context.Context, req resource.Re
 
 func (f fasitEnvironmentValueResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
 	var data fasitEnvironmentValueData
-	resp.Diagnostics.Append(req.Config.Get(ctx, &data)...)
+	resp.Diagnostics.Append(req.Plan.Get(ctx, &data)...)
 
 	if resp.Diagnostics.HasError() {
 		return
@@ -220,8 +221,7 @@ func (f fasitEnvironmentValueResource) UpgradeState(ctx context.Context) map[int
 						Required: true,
 					},
 					"value": schema.StringAttribute{
-						Required:  true,
-						Sensitive: true,
+						Required: true,
 					},
 					"secret": schema.BoolAttribute{
 						Optional: true,
