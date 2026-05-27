@@ -15,6 +15,7 @@ import (
 )
 
 var _ resource.Resource = &fasitEnvironmentValueResource{}
+var _ resource.ResourceWithUpgradeState = &fasitEnvironmentValueResource{}
 
 type fasitEnvironmentValueResource struct {
 	client protogen.ProviderClient
@@ -30,6 +31,7 @@ func (r *fasitEnvironmentValueResource) Metadata(ctx context.Context, req resour
 
 func (r *fasitEnvironmentValueResource) Schema(ctx context.Context, req resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
+		Version:             1,
 		MarkdownDescription: "Resource for creating and managing fasit environment values",
 		Attributes: map[string]schema.Attribute{
 			"environment_id": schema.StringAttribute{
@@ -194,5 +196,54 @@ func (f fasitEnvironmentValueResource) Delete(ctx context.Context, req resource.
 	if err != nil {
 		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to get EnvironmentValue, got error: %s", err))
 		return
+	}
+}
+
+// fasitEnvironmentValueDataV0 represents the v0 state schema where the field was called "secret".
+type fasitEnvironmentValueDataV0 struct {
+	EnvironmentID types.String `tfsdk:"environment_id"`
+	Key           types.String `tfsdk:"key"`
+	Value         types.String `tfsdk:"value"`
+	Secret        types.Bool   `tfsdk:"secret"`
+}
+
+func (f fasitEnvironmentValueResource) UpgradeState(ctx context.Context) map[int64]resource.StateUpgrader {
+	return map[int64]resource.StateUpgrader{
+		// Upgrade from v0 (secret) to v1 (hide_in_fasit)
+		0: {
+			PriorSchema: &schema.Schema{
+				Attributes: map[string]schema.Attribute{
+					"environment_id": schema.StringAttribute{
+						Required: true,
+					},
+					"key": schema.StringAttribute{
+						Required: true,
+					},
+					"value": schema.StringAttribute{
+						Required:  true,
+						Sensitive: true,
+					},
+					"secret": schema.BoolAttribute{
+						Optional: true,
+						Computed: true,
+					},
+				},
+			},
+			StateUpgrader: func(ctx context.Context, req resource.UpgradeStateRequest, resp *resource.UpgradeStateResponse) {
+				var prior fasitEnvironmentValueDataV0
+				resp.Diagnostics.Append(req.State.Get(ctx, &prior)...)
+				if resp.Diagnostics.HasError() {
+					return
+				}
+
+				upgraded := fasitEnvironmentValueData{
+					EnvironmentID: prior.EnvironmentID,
+					Key:           prior.Key,
+					Value:         prior.Value,
+					HideInFasit:   prior.Secret,
+				}
+				resp.Diagnostics.Append(resp.State.Set(ctx, &upgraded)...)
+			},
+		},
 	}
 }
