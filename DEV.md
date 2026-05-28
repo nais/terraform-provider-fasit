@@ -37,7 +37,7 @@ resource "fasit_environment_value" "test" {
   environment_id = "<your-environment-id>"
   key            = "hello"
   value          = "world"
-  hide_in_fasit  = false
+  secret         = false
 }
 ```
 

@@ -32,7 +32,7 @@ type environmentValuesAcrossEnvsModel struct {
 type environmentValuesAcrossEnvsResults struct {
 	Key             types.String `tfsdk:"key"`
 	Value           types.String `tfsdk:"value"`
-	HideInFasit     types.Bool   `tfsdk:"hide_in_fasit"`
+	Secret          types.Bool   `tfsdk:"secret"`
 	TenantID        types.String `tfsdk:"tenant_id"`
 	TenantName      types.String `tfsdk:"tenant_name"`
 	EnvironmentID   types.String `tfsdk:"environment_id"`
@@ -67,8 +67,8 @@ func (d *environmentValuesAcrossEnvs) Schema(ctx context.Context, req datasource
 							MarkdownDescription: "The value of the environment value. JSON encoded",
 							Computed:            true,
 						},
-						"hide_in_fasit": schema.BoolAttribute{
-							MarkdownDescription: "Whether the environment value is hidden in the Fasit UI",
+						"secret": schema.BoolAttribute{
+							MarkdownDescription: "Marks the value as a secret in Fasit. A marked secrets is used for masking, and trigger secret-tainting of computed Helm values. Set to `true` for any sensitive value.",
 							Computed:            true,
 						},
 						"tenant_id": schema.StringAttribute{
@@ -134,7 +134,7 @@ func (d *environmentValuesAcrossEnvs) Read(ctx context.Context, req datasource.R
 		data.Results = append(data.Results, environmentValuesAcrossEnvsResults{
 			Key:             types.StringValue(env.Key),
 			Value:           types.StringValue(string(env.GetValue())),
-			HideInFasit:     types.BoolValue(env.Secret),
+			Secret:          types.BoolValue(env.Secret),
 			TenantID:        types.StringValue(env.TenantId),
 			TenantName:      types.StringValue(env.TenantName),
 			EnvironmentID:   types.StringValue(env.EnvironmentId),

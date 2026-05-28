@@ -32,7 +32,7 @@ func (r *fasitEnvironmentValueResource) Metadata(ctx context.Context, req resour
 
 func (r *fasitEnvironmentValueResource) Schema(ctx context.Context, req resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
-		Version:             1,
+		Version:             2,
 		MarkdownDescription: "Resource for creating and managing fasit environment values",
 		Attributes: map[string]schema.Attribute{
 			"environment_id": schema.StringAttribute{
@@ -50,8 +50,8 @@ func (r *fasitEnvironmentValueResource) Schema(ctx context.Context, req resource
 				MarkdownDescription: "Value",
 				Required:            true,
 			},
-			"hide_in_fasit": schema.BoolAttribute{
-				MarkdownDescription: "Whether to hide this value in the Fasit UI",
+			"secret": schema.BoolAttribute{
+				MarkdownDescription: "Marks the value as a secret in Fasit. A marked secrets is used for masking, and trigger secret-tainting of computed Helm values. Set to `true` for any sensitive value.",
 				Optional:            true,
 				Computed:            true,
 				Default:             booldefault.StaticBool(false),
@@ -84,7 +84,7 @@ type fasitEnvironmentValueData struct {
 	EnvironmentID types.String `tfsdk:"environment_id"`
 	Key           types.String `tfsdk:"key"`
 	Value         types.String `tfsdk:"value"`
-	HideInFasit   types.Bool   `tfsdk:"hide_in_fasit"`
+	Secret        types.Bool   `tfsdk:"secret"`
 }
 
 func (f fasitEnvironmentValueResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
@@ -105,7 +105,7 @@ func (f fasitEnvironmentValueResource) Create(ctx context.Context, req resource.
 		EnvironmentId: data.EnvironmentID.ValueString(),
 		Key:           data.Key.ValueString(),
 		Value:         vb,
-		Secret:        data.HideInFasit.ValueBool(),
+		Secret:        data.Secret.ValueBool(),
 	})
 	if err != nil {
 		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to create EnvironmentValue, got error: %s", err))
@@ -146,7 +146,7 @@ func (f fasitEnvironmentValueResource) Read(ctx context.Context, req resource.Re
 	}
 
 	data.Value = types.StringValue(s)
-	data.HideInFasit = types.BoolValue(res.Secret)
+	data.Secret = types.BoolValue(res.Secret)
 
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
 }
@@ -169,7 +169,7 @@ func (f fasitEnvironmentValueResource) Update(ctx context.Context, req resource.
 		EnvironmentId: data.EnvironmentID.ValueString(),
 		Key:           data.Key.ValueString(),
 		Value:         vb,
-		Secret:        data.HideInFasit.ValueBool(),
+		Secret:        data.Secret.ValueBool(),
 	})
 	if err != nil {
 		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to create EnvironmentValue, got error: %s", err))
@@ -208,9 +208,17 @@ type fasitEnvironmentValueDataV0 struct {
 	Secret        types.Bool   `tfsdk:"secret"`
 }
 
+// fasitEnvironmentValueDataV1 represents the v1 state schema where the field was called "hide_in_fasit".
+type fasitEnvironmentValueDataV1 struct {
+	EnvironmentID types.String `tfsdk:"environment_id"`
+	Key           types.String `tfsdk:"key"`
+	Value         types.String `tfsdk:"value"`
+	HideInFasit   types.Bool   `tfsdk:"hide_in_fasit"`
+}
+
 func (f fasitEnvironmentValueResource) UpgradeState(ctx context.Context) map[int64]resource.StateUpgrader {
 	return map[int64]resource.StateUpgrader{
-		// Upgrade from v0 (secret) to v1 (hide_in_fasit)
+		// Upgrade from v0 (secret) to v2 (secret) — field name unchanged, schema version bump only
 		0: {
 			PriorSchema: &schema.Schema{
 				Attributes: map[string]schema.Attribute{
@@ -240,7 +248,42 @@ func (f fasitEnvironmentValueResource) UpgradeState(ctx context.Context) map[int
 					EnvironmentID: prior.EnvironmentID,
 					Key:           prior.Key,
 					Value:         prior.Value,
-					HideInFasit:   prior.Secret,
+					Secret:        prior.Secret,
+				}
+				resp.Diagnostics.Append(resp.State.Set(ctx, &upgraded)...)
+			},
+		},
+		// Upgrade from v1 (hide_in_fasit) to v2 (secret)
+		1: {
+			PriorSchema: &schema.Schema{
+				Attributes: map[string]schema.Attribute{
+					"environment_id": schema.StringAttribute{
+						Required: true,
+					},
+					"key": schema.StringAttribute{
+						Required: true,
+					},
+					"value": schema.StringAttribute{
+						Required: true,
+					},
+					"hide_in_fasit": schema.BoolAttribute{
+						Optional: true,
+						Computed: true,
+					},
+				},
+			},
+			StateUpgrader: func(ctx context.Context, req resource.UpgradeStateRequest, resp *resource.UpgradeStateResponse) {
+				var prior fasitEnvironmentValueDataV1
+				resp.Diagnostics.Append(req.State.Get(ctx, &prior)...)
+				if resp.Diagnostics.HasError() {
+					return
+				}
+
+				upgraded := fasitEnvironmentValueData{
+					EnvironmentID: prior.EnvironmentID,
+					Key:           prior.Key,
+					Value:         prior.Value,
+					Secret:        prior.HideInFasit,
 				}
 				resp.Diagnostics.Append(resp.State.Set(ctx, &upgraded)...)
 			},

@@ -25,5 +25,5 @@ resource "fasit_environment_value" "example" {
   environment_id = fasit_environment.name.id
   key            = "MY_SECRET"
   value          = "my-value"
-  hide_in_fasit  = true
+  secret         = true
 }

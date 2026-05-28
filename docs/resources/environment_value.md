@@ -23,4 +23,4 @@ Resource for creating and managing fasit environment values
 
 ### Optional
 
-- `hide_in_fasit` (Boolean) Whether to hide this value in the Fasit UI
+- `secret` (Boolean) Marks the value as a secret in Fasit. A marked secrets is used for masking, and trigger secret-tainting of computed Helm values. Set to `true` for any sensitive value.
