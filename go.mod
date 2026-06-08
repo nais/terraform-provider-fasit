@@ -15,7 +15,7 @@ require (
 	github.com/hashicorp/terraform-plugin-framework v1.19.0
 	github.com/hashicorp/terraform-plugin-go v0.31.0
 	github.com/hashicorp/terraform-plugin-log v0.10.0
-	github.com/hashicorp/terraform-plugin-sdk/v2 v2.40.0
+	github.com/hashicorp/terraform-plugin-sdk/v2 v2.40.1
 	google.golang.org/grpc v1.81.1
 	google.golang.org/protobuf v1.36.11
 )
