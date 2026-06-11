@@ -30,11 +30,13 @@ func newFasitEnvironmentResource() resource.Resource {
 }
 
 type fasitEnvironmentData struct {
-	ID       types.String `tfsdk:"id"`
-	TenantID types.String `tfsdk:"tenant_id"`
-	Name     types.String `tfsdk:"name"`
-	Kind     types.String `tfsdk:"kind"`
-	Labels   types.Map    `tfsdk:"labels"`
+	ID               types.String `tfsdk:"id"`
+	TenantID         types.String `tfsdk:"tenant_id"`
+	Name             types.String `tfsdk:"name"`
+	Kind             types.String `tfsdk:"kind"`
+	Labels           types.Map    `tfsdk:"labels"`
+	OidcIssuer       types.String `tfsdk:"oidc_issuer"`
+	OidcDiscoveryUrl types.String `tfsdk:"oidc_discovery_url"`
 }
 
 func (r *fasitEnvironmentResource) Metadata(ctx context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
@@ -77,6 +79,14 @@ func (r *fasitEnvironmentResource) Schema(ctx context.Context, req resource.Sche
 			"labels": schema.MapAttribute{
 				ElementType:         types.StringType,
 				MarkdownDescription: "Environment labels",
+				Optional:            true,
+			},
+			"oidc_issuer": schema.StringAttribute{
+				MarkdownDescription: "OIDC issuer for the environment",
+				Optional:            true,
+			},
+			"oidc_discovery_url": schema.StringAttribute{
+				MarkdownDescription: "OIDC discovery URL for the environment",
 				Optional:            true,
 			},
 		},
@@ -125,6 +135,8 @@ func (f fasitEnvironmentResource) Create(ctx context.Context, req resource.Creat
 	}
 
 	labels := labelsToProto(data.Labels)
+	desiredOidcIssuer := data.OidcIssuer
+	desiredOidcDiscoveryURL := data.OidcDiscoveryUrl
 	res, err := f.client.CreateEnvironment(ctx, &protogen.CreateEnvironmentRequest{
 		Name:     data.Name.ValueString(),
 		TenantId: data.TenantID.ValueString(),
@@ -137,6 +149,28 @@ func (f fasitEnvironmentResource) Create(ctx context.Context, req resource.Creat
 	}
 
 	data.ID = types.StringValue(res.Id)
+	data.Labels = labelsFromProto(res.Labels)
+	data.OidcIssuer = stringFromProto(res.OidcIssuer)
+	data.OidcDiscoveryUrl = stringFromProto(res.OidcDiscoveryUrl)
+
+	if oidcIssuer := createOptionalStringValuePtr(desiredOidcIssuer); oidcIssuer != nil || createOptionalStringValuePtr(desiredOidcDiscoveryURL) != nil {
+		oidcDiscoveryURL := createOptionalStringValuePtr(desiredOidcDiscoveryURL)
+		res, err = f.client.UpdateEnvironment(ctx, &protogen.UpdateEnvironmentRequest{
+			EnvironmentId:    data.ID.ValueString(),
+			Labels:           labels,
+			OidcIssuer:       oidcIssuer,
+			OidcDiscoveryUrl: oidcDiscoveryURL,
+		})
+		if err != nil {
+			resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to configure environment OIDC, got error: %s", err))
+			return
+		}
+
+		data.Labels = labelsFromProto(res.Labels)
+		data.OidcIssuer = stringFromProto(res.OidcIssuer)
+		data.OidcDiscoveryUrl = stringFromProto(res.OidcDiscoveryUrl)
+	}
+
 	tflog.Trace(ctx, "create environment")
 
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
@@ -165,10 +199,10 @@ func (f fasitEnvironmentResource) Read(ctx context.Context, req resource.ReadReq
 	}
 
 	data.ID = types.StringValue(res.Id)
+	data.Labels = labelsFromProto(res.Labels)
+	data.OidcIssuer = stringFromProto(res.OidcIssuer)
+	data.OidcDiscoveryUrl = stringFromProto(res.OidcDiscoveryUrl)
 
-	if res.Labels != nil {
-		data.Labels = labelsFromProto(res.Labels)
-	}
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
 }
 
@@ -192,9 +226,11 @@ func (f fasitEnvironmentResource) Update(ctx context.Context, req resource.Updat
 	}
 
 	labels := labelsToProto(config.Labels)
-	_, err := f.client.UpdateEnvironment(ctx, &protogen.UpdateEnvironmentRequest{
-		EnvironmentId: state.ID.ValueString(),
-		Labels:        labels,
+	res, err := f.client.UpdateEnvironment(ctx, &protogen.UpdateEnvironmentRequest{
+		EnvironmentId:    state.ID.ValueString(),
+		Labels:           labels,
+		OidcIssuer:       updateOptionalStringValuePtr(config.OidcIssuer, state.OidcIssuer),
+		OidcDiscoveryUrl: updateOptionalStringValuePtr(config.OidcDiscoveryUrl, state.OidcDiscoveryUrl),
 	})
 	if err != nil {
 		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to update environment, got error: %s", err))
@@ -202,13 +238,19 @@ func (f fasitEnvironmentResource) Update(ctx context.Context, req resource.Updat
 	}
 
 	tflog.Trace(ctx, "update environment")
-	state.Labels = config.Labels
+	state.Labels = labelsFromProto(res.Labels)
+	state.OidcIssuer = stringFromProto(res.OidcIssuer)
+	state.OidcDiscoveryUrl = stringFromProto(res.OidcDiscoveryUrl)
 
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
 }
 
 func labelsToProto(labels types.Map) []*protogen.EnvironmentLabel {
-	entries := make([]*protogen.EnvironmentLabel, 0)
+	if labels.IsNull() || labels.IsUnknown() {
+		return nil
+	}
+
+	entries := make([]*protogen.EnvironmentLabel, 0, len(labels.Elements()))
 	for k, v := range labels.Elements() {
 		entries = append(entries, &protogen.EnvironmentLabel{
 			Key:   k,
@@ -216,6 +258,40 @@ func labelsToProto(labels types.Map) []*protogen.EnvironmentLabel {
 		})
 	}
 	return entries
+}
+
+func stringFromProto(value string) types.String {
+	if value == "" {
+		return types.StringNull()
+	}
+	return types.StringValue(value)
+}
+
+func createOptionalStringValuePtr(value types.String) *string {
+	if value.IsNull() || value.IsUnknown() {
+		return nil
+	}
+
+	s := value.ValueString()
+	return &s
+}
+
+func updateOptionalStringValuePtr(config types.String, state types.String) *string {
+	if config.IsUnknown() {
+		return nil
+	}
+
+	if config.IsNull() {
+		if state.IsNull() || state.IsUnknown() {
+			return nil
+		}
+
+		s := ""
+		return &s
+	}
+
+	s := config.ValueString()
+	return &s
 }
 
 func (f fasitEnvironmentResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
@@ -251,6 +327,12 @@ func (f fasitEnvironmentResource) ImportState(ctx context.Context, req resource.
 		ctx, path.Root("kind"), idparts[2],
 	)...)
 	resp.Diagnostics.Append(resp.State.SetAttribute(
-		ctx, path.Root("labels"), res.Labels,
+		ctx, path.Root("labels"), labelsFromProto(res.Labels),
+	)...)
+	resp.Diagnostics.Append(resp.State.SetAttribute(
+		ctx, path.Root("oidc_issuer"), stringFromProto(res.OidcIssuer),
+	)...)
+	resp.Diagnostics.Append(resp.State.SetAttribute(
+		ctx, path.Root("oidc_discovery_url"), stringFromProto(res.OidcDiscoveryUrl),
 	)...)
 }
