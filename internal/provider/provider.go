@@ -30,7 +30,7 @@ type FasitProvider struct {
 	//
 	// TODO: If appropriate, implement upstream provider SDK or HTTP client.
 	// client vendorsdk.ExampleClient
-	client protogen.ProviderClient
+	client protogen.FasitClient
 
 	// version is set to the provider version on release, "dev" when the
 	// provider is built and ran locally, and "test" when running acceptance
@@ -82,7 +82,7 @@ func (f *FasitProvider) Configure(ctx context.Context, req provider.ConfigureReq
 		return
 	}
 
-	f.client = protogen.NewProviderClient(gclient)
+	f.client = protogen.NewFasitClient(gclient)
 
 	resp.DataSourceData = f.client
 	resp.ResourceData = f.client

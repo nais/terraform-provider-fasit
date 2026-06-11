@@ -16,7 +16,7 @@ import (
 var _ resource.Resource = &fasitTenantResource{}
 
 type fasitTenantResource struct {
-	client protogen.ProviderClient
+	client protogen.FasitClient
 }
 
 func newFasitTenantResource() resource.Resource {
@@ -58,7 +58,7 @@ func (r *fasitTenantResource) Configure(ctx context.Context, req resource.Config
 		return
 	}
 
-	client, ok := req.ProviderData.(protogen.ProviderClient)
+	client, ok := req.ProviderData.(protogen.FasitClient)
 
 	if !ok {
 		resp.Diagnostics.AddError(
@@ -88,7 +88,7 @@ func (f fasitTenantResource) Create(ctx context.Context, req resource.CreateRequ
 		return
 	}
 
-	data.ID = types.StringValue(res.Id)
+	data.ID = types.StringValue(res.GetTenant().GetId())
 	tflog.Trace(ctx, "create tenant")
 
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
@@ -114,7 +114,7 @@ func (f fasitTenantResource) Read(ctx context.Context, req resource.ReadRequest,
 		return
 	}
 
-	data.ID = types.StringValue(res.Id)
+	data.ID = types.StringValue(res.GetTenant().GetId())
 
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
 }

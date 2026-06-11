@@ -15,11 +15,13 @@ import (
 	"github.com/nais/terraform-provider-fasit/fasit/protogen"
 )
 
-var _ resource.Resource = &fasitEnvironmentValueResource{}
-var _ resource.ResourceWithUpgradeState = &fasitEnvironmentValueResource{}
+var (
+	_ resource.Resource                 = &fasitEnvironmentValueResource{}
+	_ resource.ResourceWithUpgradeState = &fasitEnvironmentValueResource{}
+)
 
 type fasitEnvironmentValueResource struct {
-	client protogen.ProviderClient
+	client protogen.FasitClient
 }
 
 func newFasitEnvironmentValueResource() resource.Resource {
@@ -66,7 +68,7 @@ func (r *fasitEnvironmentValueResource) Configure(ctx context.Context, req resou
 		return
 	}
 
-	client, ok := req.ProviderData.(protogen.ProviderClient)
+	client, ok := req.ProviderData.(protogen.FasitClient)
 
 	if !ok {
 		resp.Diagnostics.AddError(
@@ -101,7 +103,7 @@ func (f fasitEnvironmentValueResource) Create(ctx context.Context, req resource.
 		return
 	}
 
-	_, err = f.client.CreateOrUpdateEnvironmentValue(ctx, &protogen.CreateOrUpdateEnvironmentValueRequest{
+	_, err = f.client.SetEnvironmentValue(ctx, &protogen.SetEnvironmentValueRequest{
 		EnvironmentId: data.EnvironmentID.ValueString(),
 		Key:           data.Key.ValueString(),
 		Value:         vb,
@@ -139,14 +141,14 @@ func (f fasitEnvironmentValueResource) Read(ctx context.Context, req resource.Re
 	}
 
 	var s string
-	err = json.Unmarshal(res.Value, &s)
+	err = json.Unmarshal(res.GetEnvironmentValue().GetValue(), &s)
 	if err != nil {
 		resp.Diagnostics.AddError("Failed to unmarshal value", err.Error())
 		return
 	}
 
 	data.Value = types.StringValue(s)
-	data.Secret = types.BoolValue(res.Secret)
+	data.Secret = types.BoolValue(res.GetEnvironmentValue().GetSecret())
 
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
 }
@@ -165,7 +167,7 @@ func (f fasitEnvironmentValueResource) Update(ctx context.Context, req resource.
 		return
 	}
 
-	_, err = f.client.CreateOrUpdateEnvironmentValue(ctx, &protogen.CreateOrUpdateEnvironmentValueRequest{
+	_, err = f.client.SetEnvironmentValue(ctx, &protogen.SetEnvironmentValueRequest{
 		EnvironmentId: data.EnvironmentID.ValueString(),
 		Key:           data.Key.ValueString(),
 		Value:         vb,
@@ -244,12 +246,7 @@ func (f fasitEnvironmentValueResource) UpgradeState(ctx context.Context) map[int
 					return
 				}
 
-				upgraded := fasitEnvironmentValueData{
-					EnvironmentID: prior.EnvironmentID,
-					Key:           prior.Key,
-					Value:         prior.Value,
-					Secret:        prior.Secret,
-				}
+				upgraded := fasitEnvironmentValueData(prior)
 				resp.Diagnostics.Append(resp.State.Set(ctx, &upgraded)...)
 			},
 		},

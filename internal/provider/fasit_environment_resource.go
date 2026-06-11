@@ -22,7 +22,7 @@ var (
 )
 
 type fasitEnvironmentResource struct {
-	client protogen.ProviderClient
+	client protogen.FasitClient
 }
 
 func newFasitEnvironmentResource() resource.Resource {
@@ -39,11 +39,11 @@ type fasitEnvironmentData struct {
 	OidcDiscoveryUrl types.String `tfsdk:"oidc_discovery_url"`
 }
 
-func (r *fasitEnvironmentResource) Metadata(ctx context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
+func (f *fasitEnvironmentResource) Metadata(ctx context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
 	resp.TypeName = req.ProviderTypeName + "_environment"
 }
 
-func (r *fasitEnvironmentResource) Schema(ctx context.Context, req resource.SchemaRequest, resp *resource.SchemaResponse) {
+func (f *fasitEnvironmentResource) Schema(ctx context.Context, req resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
 		MarkdownDescription: "Resource for creating and managing fasit environments",
 
@@ -93,13 +93,13 @@ func (r *fasitEnvironmentResource) Schema(ctx context.Context, req resource.Sche
 	}
 }
 
-func (r *fasitEnvironmentResource) Configure(ctx context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
+func (f *fasitEnvironmentResource) Configure(ctx context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
 	// Prevent panic if the provider has not been configured.
 	if req.ProviderData == nil {
 		return
 	}
 
-	client, ok := req.ProviderData.(protogen.ProviderClient)
+	client, ok := req.ProviderData.(protogen.FasitClient)
 
 	if !ok {
 		resp.Diagnostics.AddError(
@@ -110,7 +110,7 @@ func (r *fasitEnvironmentResource) Configure(ctx context.Context, req resource.C
 		return
 	}
 
-	r.client = client
+	f.client = client
 }
 
 func (f fasitEnvironmentResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
@@ -135,41 +135,24 @@ func (f fasitEnvironmentResource) Create(ctx context.Context, req resource.Creat
 	}
 
 	labels := labelsToProto(data.Labels)
-	desiredOidcIssuer := data.OidcIssuer
-	desiredOidcDiscoveryURL := data.OidcDiscoveryUrl
 	res, err := f.client.CreateEnvironment(ctx, &protogen.CreateEnvironmentRequest{
-		Name:     data.Name.ValueString(),
-		TenantId: data.TenantID.ValueString(),
-		Kind:     kind,
-		Labels:   labels,
+		Name:             data.Name.ValueString(),
+		TenantId:         data.TenantID.ValueString(),
+		Kind:             kind,
+		Labels:           labels,
+		OidcIssuer:       data.OidcIssuer.ValueStringPointer(),
+		OidcDiscoveryUrl: data.OidcDiscoveryUrl.ValueStringPointer(),
 	})
 	if err != nil {
 		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to create environment, got error: %s", err))
 		return
 	}
 
-	data.ID = types.StringValue(res.Id)
-	data.Labels = labelsFromProto(res.Labels)
-	data.OidcIssuer = stringFromProto(res.OidcIssuer)
-	data.OidcDiscoveryUrl = stringFromProto(res.OidcDiscoveryUrl)
-
-	if oidcIssuer := createOptionalStringValuePtr(desiredOidcIssuer); oidcIssuer != nil || createOptionalStringValuePtr(desiredOidcDiscoveryURL) != nil {
-		oidcDiscoveryURL := createOptionalStringValuePtr(desiredOidcDiscoveryURL)
-		res, err = f.client.UpdateEnvironment(ctx, &protogen.UpdateEnvironmentRequest{
-			EnvironmentId:    data.ID.ValueString(),
-			Labels:           labels,
-			OidcIssuer:       oidcIssuer,
-			OidcDiscoveryUrl: oidcDiscoveryURL,
-		})
-		if err != nil {
-			resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to configure environment OIDC, got error: %s", err))
-			return
-		}
-
-		data.Labels = labelsFromProto(res.Labels)
-		data.OidcIssuer = stringFromProto(res.OidcIssuer)
-		data.OidcDiscoveryUrl = stringFromProto(res.OidcDiscoveryUrl)
-	}
+	data.ID = types.StringValue(res.GetEnvironment().GetId())
+	data.Labels = labelsFromProto(res.GetEnvironment().GetLabels())
+	data.OidcIssuer = stringFromProto(res.GetEnvironment().GetTenantId())
+	data.OidcDiscoveryUrl = stringFromProto(res.GetEnvironment().GetOidcDiscoveryUrl())
+	data.TenantID = stringFromProto(res.GetEnvironment().GetTenantId())
 
 	tflog.Trace(ctx, "create environment")
 
@@ -198,10 +181,12 @@ func (f fasitEnvironmentResource) Read(ctx context.Context, req resource.ReadReq
 		return
 	}
 
-	data.ID = types.StringValue(res.Id)
-	data.Labels = labelsFromProto(res.Labels)
-	data.OidcIssuer = stringFromProto(res.OidcIssuer)
-	data.OidcDiscoveryUrl = stringFromProto(res.OidcDiscoveryUrl)
+	data.ID = types.StringValue(res.GetEnvironment().GetId())
+	data.Labels = labelsFromProto(res.GetEnvironment().GetLabels())
+	data.OidcIssuer = stringFromProto(res.GetEnvironment().GetOidcIssuer())
+	data.OidcDiscoveryUrl = stringFromProto(res.GetEnvironment().GetOidcDiscoveryUrl())
+	data.TenantID = stringFromProto(res.GetEnvironment().GetTenantId())
+	data.Name = stringFromProto(res.GetEnvironment().GetName())
 
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
 }
@@ -238,9 +223,9 @@ func (f fasitEnvironmentResource) Update(ctx context.Context, req resource.Updat
 	}
 
 	tflog.Trace(ctx, "update environment")
-	state.Labels = labelsFromProto(res.Labels)
-	state.OidcIssuer = stringFromProto(res.OidcIssuer)
-	state.OidcDiscoveryUrl = stringFromProto(res.OidcDiscoveryUrl)
+	state.Labels = labelsFromProto(res.GetEnvironment().GetLabels())
+	state.OidcIssuer = stringFromProto(res.GetEnvironment().GetOidcIssuer())
+	state.OidcDiscoveryUrl = stringFromProto(res.GetEnvironment().GetOidcDiscoveryUrl())
 
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
 }
@@ -267,15 +252,6 @@ func stringFromProto(value string) types.String {
 	return types.StringValue(value)
 }
 
-func createOptionalStringValuePtr(value types.String) *string {
-	if value.IsNull() || value.IsUnknown() {
-		return nil
-	}
-
-	s := value.ValueString()
-	return &s
-}
-
 func updateOptionalStringValuePtr(config types.String, state types.String) *string {
 	if config.IsUnknown() {
 		return nil
@@ -285,13 +261,9 @@ func updateOptionalStringValuePtr(config types.String, state types.String) *stri
 		if state.IsNull() || state.IsUnknown() {
 			return nil
 		}
-
-		s := ""
-		return &s
 	}
 
-	s := config.ValueString()
-	return &s
+	return config.ValueStringPointer()
 }
 
 func (f fasitEnvironmentResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
@@ -315,7 +287,7 @@ func (f fasitEnvironmentResource) ImportState(ctx context.Context, req resource.
 	}
 
 	resp.Diagnostics.Append(resp.State.SetAttribute(
-		ctx, path.Root("id"), types.StringValue(res.Id),
+		ctx, path.Root("id"), types.StringValue(res.GetEnvironment().GetId()),
 	)...)
 	resp.Diagnostics.Append(resp.State.SetAttribute(
 		ctx, path.Root("tenant_id"), idparts[0],
@@ -327,12 +299,12 @@ func (f fasitEnvironmentResource) ImportState(ctx context.Context, req resource.
 		ctx, path.Root("kind"), idparts[2],
 	)...)
 	resp.Diagnostics.Append(resp.State.SetAttribute(
-		ctx, path.Root("labels"), labelsFromProto(res.Labels),
+		ctx, path.Root("labels"), labelsFromProto(res.GetEnvironment().GetLabels()),
 	)...)
 	resp.Diagnostics.Append(resp.State.SetAttribute(
-		ctx, path.Root("oidc_issuer"), stringFromProto(res.OidcIssuer),
+		ctx, path.Root("oidc_issuer"), stringFromProto(res.GetEnvironment().GetOidcIssuer()),
 	)...)
 	resp.Diagnostics.Append(resp.State.SetAttribute(
-		ctx, path.Root("oidc_discovery_url"), stringFromProto(res.OidcDiscoveryUrl),
+		ctx, path.Root("oidc_discovery_url"), stringFromProto(res.GetEnvironment().GetOidcDiscoveryUrl()),
 	)...)
 }

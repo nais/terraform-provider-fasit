@@ -19,7 +19,7 @@ func newEnvironmentValuesAcrossEnvs() datasource.DataSource {
 
 // environmentValuesAcrossEnvs defines the data source implementation.
 type environmentValuesAcrossEnvs struct {
-	client protogen.ProviderClient
+	client protogen.FasitClient
 }
 
 // environmentValuesAcrossEnvsModel describes the data source data model.
@@ -100,7 +100,7 @@ func (d *environmentValuesAcrossEnvs) Configure(ctx context.Context, req datasou
 		return
 	}
 
-	client, ok := req.ProviderData.(protogen.ProviderClient)
+	client, ok := req.ProviderData.(protogen.FasitClient)
 
 	if !ok {
 		resp.Diagnostics.AddError(
@@ -124,7 +124,7 @@ func (d *environmentValuesAcrossEnvs) Read(ctx context.Context, req datasource.R
 		return
 	}
 
-	res, err := d.client.GetEnvironmentValuesAcrossEnvs(ctx, &protogen.GetEnvironmentValuesAcrossEnvsRequest{Key: data.Key.ValueString()})
+	res, err := d.client.ListEnvironmentValues(ctx, &protogen.ListEnvironmentValuesRequest{Key: data.Key.ValueString()})
 	if err != nil {
 		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to read example, got error: %s", err))
 		return
