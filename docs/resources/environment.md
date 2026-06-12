@@ -24,6 +24,8 @@ Resource for creating and managing fasit environments
 ### Optional
 
 - `labels` (Map of String) Environment labels
+- `oidc_discovery_url` (String) OIDC discovery URL for the environment
+- `oidc_issuer` (String) OIDC issuer for the environment
 
 ### Read-Only
 

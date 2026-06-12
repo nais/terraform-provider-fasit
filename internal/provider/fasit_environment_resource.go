@@ -121,7 +121,7 @@ func (f fasitEnvironmentResource) Create(ctx context.Context, req resource.Creat
 		return
 	}
 
-	kind := protogen.EnvironmentKind_UNKNOWN
+	var kind protogen.EnvironmentKind
 	switch data.Kind.ValueString() {
 	case "management":
 		kind = protogen.EnvironmentKind_MANAGEMENT
