@@ -2,7 +2,7 @@
 pin = true
 
 [tools]
-go = "1.26.4"
+go = "1.26.6"
 golangci-lint = "2.12.2"
 opentofu = "1.10.6"
 protoc = "35.0"
