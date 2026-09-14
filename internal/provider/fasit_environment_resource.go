@@ -153,21 +153,9 @@ func (f fasitEnvironmentResource) Create(ctx context.Context, req resource.Creat
 
 	data.ID = types.StringValue(res.GetEnvironment().GetId())
 	data.TenantID = stringFromProto(res.GetEnvironment().GetTenantId())
-
-	// The create response omits labels, so re-read to reconcile state with
-	// what is actually stored.
-	env, err := f.client.GetEnvironment(ctx, &protogen.GetEnvironmentRequest{
-		TenantId: data.TenantID.ValueString(),
-		Name:     data.Name.ValueString(),
-	})
-	if err != nil {
-		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to read environment after create, got error: %s", err))
-		return
-	}
-
-	data.Labels = labelsFromProto(env.GetEnvironment().GetLabels())
-	data.OidcIssuer = stringFromProto(env.GetEnvironment().GetOidcIssuer())
-	data.OidcDiscoveryUrl = stringFromProto(env.GetEnvironment().GetOidcDiscoveryUrl())
+	data.Labels = labelsFromProto(res.GetEnvironment().GetLabels())
+	data.OidcIssuer = stringFromProto(res.GetEnvironment().GetOidcIssuer())
+	data.OidcDiscoveryUrl = stringFromProto(res.GetEnvironment().GetOidcDiscoveryUrl())
 
 	tflog.Trace(ctx, "create environment")
 
